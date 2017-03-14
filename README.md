@@ -1,7 +1,7 @@
 
 # Account Health Alert
 
-Lambda Functions to manage AWS Health Alerts
+Lambda Functions to manage AWS Alerts
 
 ![aws-services][aws-services-image]
 
@@ -33,11 +33,11 @@ Input Parameter Values
 
 - GitHubSourceRepositoryBranch: `master`
 
-- GitHubSourceRepositoryName: `aws-services-health`
+- GitHubSourceRepositoryName: `aws-services-alerts`
 
 - GitHubSourceRepositoryOwner: `SungardAS`
 
-- ParameterOverrides: `{ "HealthLogGroupName": "SungardAS/Alerts/Health", "SlackWebHookUrl": "slack_web_hook_url", "SlackChannel": "slack_channel" }`
+- ParameterOverrides: `{ "SlackWebHookUrl": "slack_web_hook_url", "SlackChannel": "slack_channel" }`
 
 - ProjectImage: `aws/codebuild/nodejs:4.3.2`
 

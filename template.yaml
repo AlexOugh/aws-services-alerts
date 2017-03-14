@@ -33,7 +33,7 @@ Resources:
             Action:
               - "kms:Encrypt"
             Principal:
-              AWS: !GetAtt AlertLambdaFunctionIAMRole.Arn
+              AWS: !GetAtt SlackLambdaFunctionIAMRole.Arn
             Resource: '*'
           -
             Sid: "Allow Decryption Service to use this key"
@@ -41,7 +41,7 @@ Resources:
             Action:
               - "kms:Decrypt"
             Principal:
-              AWS: !GetAtt AlertLambdaFunctionIAMRole.Arn
+              AWS: !GetAtt SlackLambdaFunctionIAMRole.Arn
             Resource: '*'
   LambdaFunctionIAMRole:
     Type: "AWS::IAM::Role"
