@@ -1,0 +1,173 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda functions for Alert Process
+Parameters:
+  SlackWebHookUrl:
+    Type: String
+    NoEcho: true
+    Description: Slack Webhook Url
+  SlackChannel:
+    Type: String
+    Default: "#health"
+    Description: Slack Channel Name
+Resources:
+  EncryptionDecryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: "Encryption and Decryption key for Lambda"
+      KeyPolicy:
+        Id: "LambdaEncDec"
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "Allow administration of the key"
+            Effect: "Allow"
+            Action:
+              - "kms:*"
+            Principal:
+              AWS: !Ref AWS::AccountId
+            Resource: '*'
+          -
+            Sid: "Allow Encryption Service to use this key"
+            Effect: "Allow"
+            Action:
+              - "kms:Encrypt"
+            Principal:
+              AWS: !GetAtt AlertLambdaFunctionIAMRole.Arn
+            Resource: '*'
+          -
+            Sid: "Allow Decryption Service to use this key"
+            Effect: "Allow"
+            Action:
+              - "kms:Decrypt"
+            Principal:
+              AWS: !GetAtt AlertLambdaFunctionIAMRole.Arn
+            Resource: '*'
+  LambdaFunctionIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowLambdaServiceToAssumeRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        -
+          PolicyName: "InlinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                Resource: "arn:aws:dynamodb:*"
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AlexOugh-Alerts
+      Handler: index.handler
+      Runtime: nodejs4.3
+      CodeUri: ./src
+      Role: !GetAtt LambdaFunctionIAMRole.Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref Table
+      Events:
+        Stream:
+          Type: Kinesis
+          Properties:
+            Stream: !GetAtt Stream.Arn
+            StartingPosition: TRIM_HORIZON
+
+  Stream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+  Table:
+    Type: AWS::Serverless::SimpleTable
+  SlackLambdaFunctionIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowLambdaServiceToAssumeRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        -
+          PolicyName: "InlinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:*"
+                Resource: "*"
+  SlackFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AlexOugh-Health-Alert-Slack
+      Handler: index_slack.handler
+      Runtime: nodejs4.3
+      CodeUri: ./src
+      Role: !GetAtt SlackLambdaFunctionIAMRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          KMS_REGION: !Ref 'AWS::Region'
+          KMS_KEY_ID: !Ref EncryptionDecryptionKey
+          SLACK_HOOK_URL: !Ref SlackWebHookUrl
+          SLACK_CHANNEL: !Ref SlackChannel
+      Events:
+        Stream:
+          Type: Kinesis
+          Properties:
+            Stream: !GetAtt Stream.Arn
+            StartingPosition: TRIM_HORIZON
+
+Outputs:
+  LambdaFunction:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt LambdaFunction.Arn
+  SlackAlertLambdaFunction:
+    Description: "Slack Alert Lambda Function ARN"
+    Value: !GetAtt SlackFunction.Arn
+  EncryptionDecryptionKeyId:
+    Description: "Encryption Decryption KMS Key Id"
+    Value: !Ref EncryptionDecryptionKey
+  KinesisStreamArn:
+    Description: "Kinesis Stream ARN"
+    Value: !GetAtt Stream.Arn
