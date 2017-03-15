@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Lambda functions for Alert Process
 Parameters:
+  AlertKinesisDestinationName:
+    Type: String
+    Default: "alertDestination"
+    Description: Alert Kinesis Destination Name
   SlackWebHookUrl:
     Type: String
     NoEcho: true
@@ -78,6 +82,14 @@ Resources:
                   - "dynamodb:PutItem"
                   - "dynamodb:Query"
                 Resource: "arn:aws:dynamodb:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kinesis:DescribeStream"
+                  - "kinesis:GetRecords"
+                  - "kinesis:GetShardIterator"
+                  - "kinesis:ListStreams"
+                Resource: !GetAtt Stream.Arn
   LambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -136,6 +148,14 @@ Resources:
                 Action:
                   - "kms:*"
                 Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kinesis:DescribeStream"
+                  - "kinesis:GetRecords"
+                  - "kinesis:GetShardIterator"
+                  - "kinesis:ListStreams"
+                Resource: !GetAtt Stream.Arn
   SlackFunction:
     Type: AWS::Serverless::Function
     Properties:
