@@ -198,22 +198,24 @@ Resources:
                   - - "logs"
                     - !Ref AWS::Region
                     - "amazonaws.com"
-      Policies:
-        -
-          PolicyName: "InlinePolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              -
-                Effect: "Allow"
-                Action:
-                  - "kinesis:PutRecord"
-                Resource: !GetAtt Stream.Arn
-              -
-                Effect: "Allow"
-                Action:
-                  - "iam:PassRole"
-                Resource: !GetAtt CWLtoKinesisRole.Arn
+  CWLtoKinesisRolePolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "CWLtoKinesisRolePolicy"
+      Roles: !Ref CWLtoKinesisRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "kinesis:PutRecord"
+            Resource: !GetAtt Stream.Arn
+          -
+            Effect: "Allow"
+            Action:
+              - "iam:PassRole"
+            Resource: !GetAtt CWLtoKinesisRole.Arn
   AlertDestinationAccessPolicy:
     Type: "AWS::IAM::Policy"
     Properties:
