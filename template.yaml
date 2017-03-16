@@ -167,7 +167,7 @@ Resources:
       Timeout: 300
       Environment:
         Variables:
-          KMS_REGION: !Ref 'AWS::Region'
+          KMS_REGION: !Ref AWS::Region
           KMS_KEY_ID: !Ref EncryptionDecryptionKey
           SLACK_HOOK_URL: !Ref SlackWebHookUrl
           SLACK_CHANNEL: !Ref SlackChannel
@@ -177,6 +177,69 @@ Resources:
           Properties:
             Stream: !GetAtt Stream.Arn
             StartingPosition: TRIM_HORIZON
+
+
+  CWLtoKinesisRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowCloudwatchlogsToAssumeRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - !Join
+                  - "."
+                  - - "logs"
+                    - !Ref AWS::Region
+                    - "amazonaws.com"
+      Policies:
+        -
+          PolicyName: "InlinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "kinesis:PutRecord"
+                Resource: !GetAtt Stream.Arn
+              -
+                Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource: !GetAtt CWLtoKinesisRole.Arn
+  AlertDestinationAccessPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              - "AWS" : !Ref AWS::AccountId
+            Action:
+              - "logs:PutSubscriptionFilter"
+            Resource: !Join
+              - ":"
+              - - "arn:aws:logs"
+                - !Ref AWS::Region
+                - !Ref AWS::AccountId
+                - "destination"
+                - !Ref AlertKinesisDestinationName
+  CloudWatchDestination:
+    Type: AWS::Logs::Destination
+    Properties:
+      DestinationName: !Ref AlertKinesisDestinationName
+      RoleArn: !Ref CWLtoKinesisRole
+      TargetArn: !GetAtt Stream.Arn
+      DestinationPolicy: !Ref AlertDestinationAccessPolicyRole.Arn
 
 Outputs:
   LambdaFunction:
@@ -191,3 +254,6 @@ Outputs:
   KinesisStreamArn:
     Description: "Kinesis Stream ARN"
     Value: !GetAtt Stream.Arn
+  CloudWatchDestinationArn:
+    Description: "CloudWatch Destination ARN"
+    Value: !GetAtt CloudWatchDestination.Arn
