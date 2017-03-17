@@ -53,7 +53,14 @@ function save(logEvents, idx, logGroup, callback) {
 
   var current = new Date();
   var logEvent = logEvents[idx];
-  var message = JSON.parse(logEvent.message);
+  var message = null;
+  try {
+    message = JSON.parse(logEvent.message);
+  }
+  catch(err) {
+    console.log(`JSON parse error in [${logEvent.message}]`);
+    return callback(null, false);
+  }
   var item = {
       "id": {"S": logEvent.id},
       "awsid": {"S": message.awsid},

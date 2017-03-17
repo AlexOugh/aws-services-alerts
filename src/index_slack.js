@@ -54,7 +54,14 @@ function alert(records, idx, callback) {
 
 function sendSlackMessage(logEvents, idx, logGroup, callback) {
   var logEvent = logEvents[idx];
-  var logMessage = JSON.parse(logEvent.message);
+  var logMessage = null;
+  try {
+    logMessage = JSON.parse(logEvent.message);
+  }
+  catch(err) {
+    console.log(`JSON parse error in [${logEvent.message}]`);
+    return callback(null, false);
+  }
   var message = buildMessage(logMessage.awsid, logMessage.message);
   if (hookUrl) {
     // Container reuse, simply process the event with the key in memory
@@ -80,7 +87,7 @@ function sendSlackMessage(logEvents, idx, logGroup, callback) {
     kms.decrypt(cipherText, (err, data) => {
       if (err) {
         console.log('Decrypt error:', err);
-        callback(err);
+        return callback(err);
       }
       hookUrl = `https://${data.Plaintext.toString('ascii')}`;
       processEvent(message, function(err, data) {
