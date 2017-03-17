@@ -101,20 +101,17 @@ Resources:
       Timeout: 60
       Environment:
         Variables:
-          DYNAMODB_TABLE_NAME: !Ref Table
+          DYNAMODB_TABLE_NAME: "alertmessages"
       Events:
         Stream:
           Type: Kinesis
           Properties:
             Stream: !GetAtt Stream.Arn
             StartingPosition: TRIM_HORIZON
-
   Stream:
     Type: AWS::Kinesis::Stream
     Properties:
       ShardCount: 1
-  Table:
-    Type: AWS::Serverless::SimpleTable
   SlackLambdaFunctionIAMRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -177,8 +174,6 @@ Resources:
           Properties:
             Stream: !GetAtt Stream.Arn
             StartingPosition: TRIM_HORIZON
-
-
   CWLtoKinesisRole:
     Type: "AWS::IAM::Role"
     Properties:
